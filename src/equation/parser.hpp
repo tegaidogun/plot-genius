@@ -5,6 +5,7 @@
 #include <functional>
 #include <cmath>
 #include <stdexcept>
+#include <map>
 
 namespace plot_genius {
 
@@ -31,7 +32,7 @@ private:
 
     struct NumberNode : public Node {
         double value;
-        double Evaluate(double x) const override { return value; }
+        double Evaluate([[maybe_unused]] double x) const override { return value; }
     };
 
     struct VariableNode : public Node {
@@ -55,8 +56,14 @@ private:
         }
     };
 
+    struct ConstantNode : public Node {
+        double value;
+        double Evaluate([[maybe_unused]] double x) const override { return value; }
+    };
+
     ::std::unique_ptr<Node> m_root;
     ::std::string m_lastError;
+    ::std::map<::std::string, double> m_constants;
 
     // Helper functions for parsing
     ::std::unique_ptr<Node> ParseExpression(const ::std::string& expr);
@@ -64,6 +71,11 @@ private:
     ::std::unique_ptr<Node> ParseFactor(const ::std::string& expr);
     ::std::unique_ptr<Node> ParseNumber(const ::std::string& expr);
     ::std::unique_ptr<Node> ParseFunction(const ::std::string& expr);
+    ::std::unique_ptr<Node> ParseConstant(const ::std::string& expr);
+    
+    // Helper functions for validation
+    bool ValidateEquationFormat(const ::std::string& equation);
+    void InitializeConstants();
 };
 
 } // namespace plot_genius 

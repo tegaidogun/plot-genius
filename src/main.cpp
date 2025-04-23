@@ -1,7 +1,7 @@
 #include "application/app.hpp"
 #include <iostream>
 
-int main(int argc, char** argv) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     try {
         auto& app = plot_genius::application::App::GetInstance();
         

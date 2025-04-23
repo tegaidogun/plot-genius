@@ -6,6 +6,9 @@ set(SOURCES
     graph/graph.cpp
     rendering/renderer.cpp
     ui/window.cpp
+    ui/graph_panel.cpp
+    ui/equation_panel.cpp
+    ui/config_panel.cpp
     application/app.cpp
 )
 
@@ -17,6 +20,9 @@ set(HEADERS
     graph/graph.hpp
     rendering/renderer.hpp
     ui/window.hpp
+    ui/graph_panel.hpp
+    ui/equation_panel.hpp
+    ui/config_panel.hpp
     application/app.hpp
 )
 

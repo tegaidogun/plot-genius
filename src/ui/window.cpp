@@ -1,20 +1,20 @@
-#include "window.hpp"
-#include "../core/logger.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <algorithm>
+
+#include "window.hpp"
+#include "../core/logger.hpp"
 
 namespace plot_genius {
 
 Window::Window()
     : m_window(nullptr)
-    , m_equation("")
-    , m_xMin(-5.0)
-    , m_xMax(5.0)
-    , m_yMin(-5.0)
-    , m_yMax(5.0)
-    , m_graph(std::make_unique<Graph>()) {}
+    , m_graphPanel(std::make_unique<GraphPanel>())
+    , m_equationPanel(std::make_unique<EquationPanel>())
+    , m_configPanel(std::make_unique<ConfigPanel>()) {}
 
 Window::~Window() {
     Shutdown();
@@ -51,6 +51,17 @@ bool Window::Initialize() {
 
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(1); // Enable vsync
+    
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        core::Logger::GetInstance().Log(core::LogLevel::Error, "Failed to initialize GLAD");
+        return false;
+    }
+
+    // Set up OpenGL viewport
+    int width, height;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    glViewport(0, 0, width, height);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -67,133 +78,240 @@ bool Window::Initialize() {
         return false;
     }
 
+    // Set up initial graph config
+    GraphConfig defaultConfig;
+    defaultConfig.showGrid = true;
+    defaultConfig.gridSpacing = 1.0f;
+    defaultConfig.lineThickness = 2.0f;
+    defaultConfig.defaultViewWidth = 20.0f;  // -10 to 10 X range
+    defaultConfig.defaultViewHeight = 3.2f;  // -1.6 to 1.6 Y range with scaling
+    m_graphPanel->SetConfig(defaultConfig);
+
+    // Set up panel callbacks
+    m_equationPanel->SetEquationCallback([this](const std::string& equation) {
+        // Add or update this equation
+        UpdateGraphPoints(equation);
+    });
+    
+    // Set up equation removal callback
+    m_equationPanel->SetRemoveCallback([this](int id) {
+        // Remove equation
+        RemoveEquation(id);
+    });
+
+    m_graphPanel->SetViewCallback([this](float minX, float maxX, float minY, float maxY) {
+        // Regenerate points for all active equations with the new view
+        UpdateActiveGraphPoints();
+    });
+    
+    // Set up config callback
+    m_configPanel->SetConfigCallback([this](const GraphConfig& config) {
+        m_graphPanel->SetConfig(config);
+    });
+
+    // Set default equation
+    const std::string defaultEquation = "y=sin(x)";
+    m_equationPanel->SetCurrentEquation(defaultEquation);
+    
     core::Logger::GetInstance().Log(core::LogLevel::Info, "Window initialized successfully");
     return true;
 }
 
 void Window::Render() {
+    // Clear the framebuffer
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    // Create main window
+    
+    // Set ImGui style
+    ImGui::StyleColorsDark();
+    ImGui::GetStyle().WindowRounding = 0.0f;
+    ImGui::GetStyle().FrameRounding = 4.0f;
+    ImGui::GetStyle().GrabRounding = 4.0f;
+    
+    // Get display size
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    
+    // Calculate panel sizes
+    // Sidebar widths (equal on both sides)
+    const float minSidebarWidth = 200.0f;
+    const float maxGraphWidth = displaySize.x * 0.75f; // Max 75% for graph
+    const float minGraphWidth = displaySize.x * 0.5f;  // Min 50% for graph
+    
+    // Calculate graph size (should be square)
+    float graphSize = std::min(displaySize.y, maxGraphWidth); // Start with max possible square
+    graphSize = std::max(graphSize, minGraphWidth); // Ensure minimum width
+    
+    // Calculate sidebar widths based on remaining space
+    float remainingWidth = displaySize.x - graphSize;
+    float sidebarWidth = remainingWidth / 2.0f;
+    
+    // Ensure minimum sidebar width
+    if (sidebarWidth < minSidebarWidth) {
+        sidebarWidth = minSidebarWidth;
+        // Recalculate graph width
+        graphSize = displaySize.x - (sidebarWidth * 2.0f);
+    }
+    
+    // -------------------- LEFT PANEL (EQUATIONS) --------------------
     ImGui::SetNextWindowPos(ImVec2(0, 0));
-    int display_w, display_h;
-    glfwGetFramebufferSize(m_window, &display_w, &display_h);
-    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(display_w), static_cast<float>(display_h)));
-    ImGui::Begin("Plot Genius", nullptr, 
-        ImGuiWindowFlags_NoTitleBar | 
-        ImGuiWindowFlags_NoResize | 
-        ImGuiWindowFlags_NoMove | 
-        ImGuiWindowFlags_NoCollapse | 
-        ImGuiWindowFlags_NoBringToFrontOnFocus);
-
-    RenderEquationInput();
-    RenderControls();
-    RenderGraph();
-
+    ImGui::SetNextWindowSize(ImVec2(sidebarWidth, displaySize.y));
+    ImGuiWindowFlags leftPanelFlags = ImGuiWindowFlags_NoCollapse | 
+                                     ImGuiWindowFlags_NoMove |
+                                     ImGuiWindowFlags_NoResize;
+    
+    if (ImGui::Begin("Equations", nullptr, leftPanelFlags)) {
+        m_equationPanel->Render();
+    }
     ImGui::End();
-
+    
+    // -------------------- CENTER PANEL (GRAPH) --------------------
+    ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0));
+    ImGui::SetNextWindowSize(ImVec2(graphSize, displaySize.y));
+    ImGuiWindowFlags graphFlags = ImGuiWindowFlags_NoCollapse | 
+                                 ImGuiWindowFlags_NoMove |
+                                 ImGuiWindowFlags_NoResize;
+    
+    if (ImGui::Begin("Graph", nullptr, graphFlags)) {
+        m_graphPanel->Render();
+    }
+    ImGui::End();
+    
+    // -------------------- RIGHT PANEL (CONFIG) --------------------
+    ImGui::SetNextWindowPos(ImVec2(sidebarWidth + graphSize, 0));
+    ImGui::SetNextWindowSize(ImVec2(sidebarWidth, displaySize.y));
+    ImGuiWindowFlags rightPanelFlags = ImGuiWindowFlags_NoCollapse | 
+                                      ImGuiWindowFlags_NoMove |
+                                      ImGuiWindowFlags_NoResize;
+    
+    // Config panel
+    if (ImGui::Begin("Configuration", nullptr, rightPanelFlags)) {
+        m_configPanel->Render();
+    }
+    ImGui::End();
+    
+    // Check if we should reset the graph view
+    if (m_configPanel->ShouldResetGraphView()) {
+        m_graphPanel->ResetView();
+        core::Logger::GetInstance().Log(core::LogLevel::Info, "Graph view reset");
+        m_configPanel->ClearResetFlag();
+    }
+    
+    // Process rendering
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    
+    // Log frame rendering (useful for debugging)
+    static int frameCount = 0;
+    if (frameCount++ % 300 == 0) {
+        core::Logger::GetInstance().Log(core::LogLevel::Debug, 
+            "Layout: Graph=" + std::to_string(graphSize) + 
+            "x" + std::to_string(displaySize.y) +
+            ", Sidebars=" + std::to_string(sidebarWidth));
+    }
 }
 
-void Window::RenderEquationInput() {
-    ImGui::Text("Enter equation:");
-    char buffer[256];
-    strncpy(buffer, m_equation.c_str(), sizeof(buffer));
-    if (ImGui::InputText("##equation", buffer, sizeof(buffer))) {
-        m_equation = buffer;
-        try {
-            if (m_graph->SetEquation(m_equation)) {
-                core::Logger::GetInstance().Log(core::LogLevel::Info, "Equation updated: " + m_equation);
+void Window::UpdateGraphPoints(const std::string& equation) {
+    if (equation.empty()) return;
+    
+    try {
+        // Find or create an entry for this equation
+        int id = -1;
+        for (const auto& pair : m_equations) {
+            if (pair.second.equation == equation) {
+                id = pair.first;
+                break;
             }
-        } catch (const std::exception& e) {
-            core::Logger::GetInstance().Log(core::LogLevel::Error, "Failed to parse equation: " + std::string(e.what()));
         }
-    }
-}
-
-void Window::RenderControls() {
-    ImGui::Separator();
-    ImGui::Text("Graph Controls");
-
-    bool rangeChanged = false;
-    rangeChanged |= ImGui::SliderFloat("X Min", &m_xMin, -10.0f, m_xMax - 0.1f);
-    rangeChanged |= ImGui::SliderFloat("X Max", &m_xMax, m_xMin + 0.1f, 10.0f);
-    rangeChanged |= ImGui::SliderFloat("Y Min", &m_yMin, -10.0f, m_yMax - 0.1f);
-    rangeChanged |= ImGui::SliderFloat("Y Max", &m_yMax, m_yMin + 0.1f, 10.0f);
-
-    if (rangeChanged) {
-        core::Logger::GetInstance().Log(core::LogLevel::Info, "Graph range updated");
-    }
-}
-
-void Window::RenderGraph() {
-    ImGui::Separator();
-    ImGui::Text("Graph");
-
-    ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-    ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    // Draw background
-    draw_list->AddRectFilled(canvas_pos, 
-        ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), 
-        IM_COL32(50, 50, 50, 255));
-
-    // Draw grid
-    float grid_step = canvas_size.x / 20.0f;
-    for (float x = 0; x <= canvas_size.x; x += grid_step) {
-        draw_list->AddLine(
-            ImVec2(canvas_pos.x + x, canvas_pos.y),
-            ImVec2(canvas_pos.x + x, canvas_pos.y + canvas_size.y),
-            IM_COL32(100, 100, 100, 40));
-    }
-    for (float y = 0; y <= canvas_size.y; y += grid_step) {
-        draw_list->AddLine(
-            ImVec2(canvas_pos.x, canvas_pos.y + y),
-            ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + y),
-            IM_COL32(100, 100, 100, 40));
-    }
-
-    // Draw axes
-    draw_list->AddLine(
-        ImVec2(canvas_pos.x, canvas_pos.y + canvas_size.y / 2),
-        ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y / 2),
-        IM_COL32(255, 255, 255, 255));
-    draw_list->AddLine(
-        ImVec2(canvas_pos.x + canvas_size.x / 2, canvas_pos.y),
-        ImVec2(canvas_pos.x + canvas_size.x / 2, canvas_pos.y + canvas_size.y),
-        IM_COL32(255, 255, 255, 255));
-
-    // Draw graph
-    if (!m_equation.empty()) {
-        std::vector<ImVec2> points;
-        const int num_points = 200;
-        for (int i = 0; i < num_points; ++i) {
-            float t = static_cast<float>(i) / (num_points - 1);
-            float x = m_xMin + t * (m_xMax - m_xMin);
-            try {
-                double y = m_graph->Evaluate(x);
-                if (y >= m_yMin && y <= m_yMax) {
-                    float screen_x = canvas_pos.x + (x - m_xMin) / (m_xMax - m_xMin) * canvas_size.x;
-                    float screen_y = canvas_pos.y + (1.0f - (y - m_yMin) / (m_yMax - m_yMin)) * canvas_size.y;
-                    points.push_back(ImVec2(screen_x, screen_y));
+        
+        // If new equation, assign a new ID
+        if (id == -1) {
+            id = m_equations.empty() ? 0 : m_equations.rbegin()->first + 1;
+            m_equations[id] = EquationGraph{};
+            m_equations[id].equation = equation;
+            m_equations[id].graph = std::make_unique<Graph>();
+            m_equations[id].isActive = true;
+        }
+        
+        // Set equation and generate points
+        EquationGraph& eqGraph = m_equations[id];
+        if (eqGraph.graph->SetEquation(equation)) {
+            // Generate graph points
+            auto points = eqGraph.graph->GeneratePoints(
+                m_graphPanel->GetViewMinX(), 
+                m_graphPanel->GetViewMaxX(), 
+                200
+            );
+            
+            // Convert to GraphPoint format
+            eqGraph.points.clear();
+            for (const auto& point : points) {
+                eqGraph.points.push_back({static_cast<float>(point.x), static_cast<float>(point.y)});
+            }
+            
+            // Update the graph panel with the points from all active equations
+            std::vector<GraphPoint> allPoints;
+            for (const auto& pair : m_equations) {
+                if (pair.second.isActive) {
+                    allPoints.insert(allPoints.end(), pair.second.points.begin(), pair.second.points.end());
                 }
-            } catch (const std::exception&) {
-                // Skip invalid points
             }
+            m_graphPanel->SetPoints(allPoints);
+            m_graphPanel->SetEquation(equation); // Display the most recently added equation
+            
+            // Log success
+            std::string message = "Generated " + std::to_string(eqGraph.points.size()) + 
+                                  " points for equation: " + equation;
+            core::Logger::GetInstance().Log(core::LogLevel::Info, message);
+        } else {
+            core::Logger::GetInstance().Log(core::LogLevel::Error, "Failed to parse equation: " + equation);
         }
+    } catch (const std::exception& e) {
+        std::string message = "Failed to generate graph: ";
+        message += e.what();
+        core::Logger::GetInstance().Log(core::LogLevel::Error, message);
+    }
+}
 
-        if (points.size() > 1) {
-            for (size_t i = 1; i < points.size(); ++i) {
-                draw_list->AddLine(points[i - 1], points[i], IM_COL32(0, 255, 0, 255), 2.0f);
+void Window::UpdateActiveGraphPoints() {
+    // Regenerate points for all active equations with the current view
+    std::vector<GraphPoint> allPoints;
+    
+    for (auto& pair : m_equations) {
+        auto& eqGraph = pair.second;
+        if (eqGraph.isActive) {
+            // Generate points for this equation
+            auto points = eqGraph.graph->GeneratePoints(
+                m_graphPanel->GetViewMinX(), 
+                m_graphPanel->GetViewMaxX(), 
+                200
+            );
+            
+            // Convert to GraphPoint format
+            eqGraph.points.clear();
+            for (const auto& point : points) {
+                eqGraph.points.push_back({static_cast<float>(point.x), static_cast<float>(point.y)});
             }
+            
+            // Add points to combined collection
+            allPoints.insert(allPoints.end(), eqGraph.points.begin(), eqGraph.points.end());
         }
     }
+    
+    // Update the graph panel with all active points
+    m_graphPanel->SetPoints(allPoints);
+}
 
-    ImGui::SetCursorScreenPos(ImVec2(canvas_pos.x, canvas_pos.y + canvas_size.y + 10));
+void Window::RemoveEquation(int id) {
+    // Find and remove the equation from our collection
+    auto it = m_equations.find(id);
+    if (it != m_equations.end()) {
+        m_equations.erase(it);
+        UpdateActiveGraphPoints();
+    }
 }
 
 bool Window::ShouldClose() const {
@@ -207,10 +325,6 @@ void Window::SwapBuffers() {
 
 void Window::SetTitle(const std::string& title) {
     glfwSetWindowTitle(m_window, title.c_str());
-}
-
-std::vector<Point> Window::GetGraphPoints() const {
-    return m_graph->GeneratePoints(m_xMin, m_xMax);
 }
 
 } // namespace plot_genius

@@ -3,10 +3,21 @@
 #include <string>
 #include <memory>
 #include <GLFW/glfw3.h>
+#include <map>
 #include "../graph/graph.hpp"
 #include "../core/logger.hpp"
+#include "graph_panel.hpp"
+#include "equation_panel.hpp"
+#include "config_panel.hpp"
 
 namespace plot_genius {
+
+struct EquationGraph {
+    std::string equation;
+    std::unique_ptr<Graph> graph;
+    std::vector<GraphPoint> points;
+    bool isActive{true};
+};
 
 class Window {
 public:
@@ -35,18 +46,21 @@ public:
     std::vector<Point> GetGraphPoints() const;
 
 private:
-    void RenderEquationInput();
-    void RenderControls();
-    void RenderGraph();
+    void UpdateGraphPoints(const std::string& equation);
+    void UpdateActiveGraphPoints();
+    void RemoveEquation(int id);
 
-    GLFWwindow* m_window;  // Store window pointer
-    std::string m_equation;
-    bool m_showGrid;
+    ::GLFWwindow* m_window;  // Store window pointer
+    std::map<int, EquationGraph> m_equations;
     float m_xMin;
     float m_xMax;
     float m_yMin;
     float m_yMax;
-    std::unique_ptr<Graph> m_graph;
+    
+    // UI Panels
+    std::unique_ptr<GraphPanel> m_graphPanel;
+    std::unique_ptr<EquationPanel> m_equationPanel;
+    std::unique_ptr<ConfigPanel> m_configPanel;
     bool m_shouldClose;
 };
 

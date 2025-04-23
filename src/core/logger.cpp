@@ -82,6 +82,12 @@ std::string Logger::FormatString(const std::string& format, T value, Args... arg
 
 // Explicit template instantiations
 template std::string Logger::FormatString<double, const char*>(const std::string&, double, const char*);
+template std::string Logger::FormatString<std::size_t, std::string>(const std::string&, std::size_t, std::string);
+template std::string Logger::FormatString<const char*>(const std::string&, const char*);
+template std::string Logger::FormatString<int>(const std::string&, int);
+template std::string Logger::FormatString<double>(const std::string&, double);
+template std::string Logger::FormatString<float>(const std::string&, float);
+template std::string Logger::FormatString<std::string>(const std::string&, std::string);
 
 } // namespace core
 } // namespace plot_genius 
