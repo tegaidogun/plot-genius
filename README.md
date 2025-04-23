@@ -23,7 +23,7 @@ cmake ..
 make
 ```
 
-## Features
+## Planned Features
 
 - Real-time equation parsing and plotting
 - Interactive pan and zoom
