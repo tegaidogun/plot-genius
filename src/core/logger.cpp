@@ -1,0 +1,87 @@
+#include "logger.hpp"
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+
+namespace plot_genius {
+namespace core {
+
+Logger& Logger::GetInstance() {
+    static Logger instance;
+    return instance;
+}
+
+Logger::Logger() : m_useFile(false) {}
+
+Logger::~Logger() {
+    if (m_useFile) {
+        m_logFile.close();
+    }
+}
+
+void Logger::SetLogFile(const std::string& filename) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_useFile) {
+        m_logFile.close();
+    }
+    m_logFile.open(filename, std::ios::app);
+    m_useFile = m_logFile.is_open();
+}
+
+void Logger::Log(LogLevel level, const std::string& message) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // Get current time
+    auto now = std::time(nullptr);
+    auto tm = std::localtime(&now);
+    
+    // Format timestamp
+    std::stringstream ss;
+    ss << std::put_time(tm, "%Y-%m-%d %H:%M:%S");
+    
+    // Format log level
+    const char* levelStr = "";
+    switch (level) {
+        case LogLevel::Debug:   levelStr = "DEBUG"; break;
+        case LogLevel::Info:    levelStr = "INFO"; break;
+        case LogLevel::Warning: levelStr = "WARNING"; break;
+        case LogLevel::Error:   levelStr = "ERROR"; break;
+    }
+    
+    // Format final message
+    std::string formatted = "[" + ss.str() + "] [" + levelStr + "] " + message + "\n";
+    
+    // Output to console
+    std::cout << formatted;
+    
+    // Output to file if enabled
+    if (m_useFile) {
+        m_logFile << formatted;
+        m_logFile.flush();
+    }
+}
+
+std::string Logger::FormatString(const std::string& format) {
+    return format;
+}
+
+template<typename T, typename... Args>
+std::string Logger::FormatString(const std::string& format, T value, Args... args) {
+    std::string result;
+    std::size_t pos = format.find("{}");
+    if (pos != std::string::npos) {
+        std::stringstream ss;
+        ss << value;
+        result = format.substr(0, pos) + ss.str() + FormatString(format.substr(pos + 2), args...);
+    } else {
+        result = format;
+    }
+    return result;
+}
+
+// Explicit template instantiations
+template std::string Logger::FormatString<double, const char*>(const std::string&, double, const char*);
+
+} // namespace core
+} // namespace plot_genius 
