@@ -1,3 +1,10 @@
+/**
+ * Implementation of the App class
+ * 
+ * Contains the implementation of the application lifecycle management including 
+ * initialization, main loop execution, and shutdown procedures.
+ */
+
 #include "app.hpp"
 #include <GLFW/glfw3.h>
 
@@ -46,6 +53,7 @@ void App::Run() {
         frameTime += deltaTime;
         frameCount++;
 
+        // Calculate FPS once per second
         if (frameTime >= 1.0) {
             m_fps = frameCount / frameTime;
             frameTime = 0.0;

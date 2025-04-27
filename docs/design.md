@@ -96,7 +96,7 @@ The application is designed to work across Windows, macOS, and Linux:
 1. **Renderer Backends**
    - Vulkan support
    - DirectX support
-   - Metal support (macOS)
+   - Metal support (When I can afford a Macbook 🥲)
 
 2. **Additional Features**
    - 3D plotting

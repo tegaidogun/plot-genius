@@ -3,6 +3,7 @@
 #include "imgui_internal.h"
 #include <cmath>
 #include <iostream>
+#include <algorithm> // For std::find
 
 namespace plot_genius {
 
@@ -44,18 +45,14 @@ void GraphPanel::Render() {
         
         // Draw background
         drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y),
-                              IM_COL32(m_config.backgroundColor[0] * 255,
-                                      m_config.backgroundColor[1] * 255,
-                                      m_config.backgroundColor[2] * 255,
-                                      m_config.backgroundColor[3] * 255));
+                              IM_COL32(m_config.backgroundColor.x * 255,
+                                      m_config.backgroundColor.y * 255,
+                                      m_config.backgroundColor.z * 255,
+                                      m_config.backgroundColor.w * 255));
         
         if (m_config.showGrid) {
             // Draw the grid with proper spacing
             float worldSpacing = m_config.gridSpacing;
-            
-            // Calculate the screen-space grid spacing
-            float screenSpacingX = worldSpacing * scaleX;
-            float screenSpacingY = worldSpacing * scaleY;
             
             // Calculate where to start drawing grid lines
             float startX = std::ceil(m_viewMinX / worldSpacing) * worldSpacing;
@@ -70,10 +67,10 @@ void GraphPanel::Render() {
                 drawList->AddLine(
                     ImVec2(screenX, canvasPos.y),
                     ImVec2(screenX, canvasPos.y + canvasSize.y),
-                    IM_COL32(m_config.gridColor[0] * 255,
-                            m_config.gridColor[1] * 255,
-                            m_config.gridColor[2] * 255,
-                            m_config.gridColor[3] * 255),
+                    IM_COL32(m_config.gridColor.x * 255,
+                            m_config.gridColor.y * 255,
+                            m_config.gridColor.z * 255,
+                            m_config.gridColor.w * 255),
                     m_config.lineThickness * 0.5f
                 );
                 
@@ -83,18 +80,13 @@ void GraphPanel::Render() {
                     snprintf(label, sizeof(label), "%.1f", x);
                     float labelY = canvasPos.y + canvasSize.y - 20.0f; // Position near bottom
                     
-                    // If Y-axis is visible, position labels near it
-                    if (m_viewMinX <= 0 && m_viewMaxX >= 0) {
-                        float axisX = canvasPos.x + (-m_viewMinX) * scaleX;
-                        labelY = canvasPos.y + canvasSize.y - 20.0f;
-                    }
-                    
+                    // Keep the labelY constant, no need for axisX
                     drawList->AddText(
                         ImVec2(screenX - 10.0f, labelY),
-                        IM_COL32(m_config.axisColor[0] * 255,
-                                m_config.axisColor[1] * 255,
-                                m_config.axisColor[2] * 255,
-                                m_config.axisColor[3] * 255),
+                        IM_COL32(m_config.axisColor.x * 255,
+                                m_config.axisColor.y * 255,
+                                m_config.axisColor.z * 255,
+                                m_config.axisColor.w * 255),
                         label
                     );
                 }
@@ -109,10 +101,10 @@ void GraphPanel::Render() {
                 drawList->AddLine(
                     ImVec2(canvasPos.x, screenY),
                     ImVec2(canvasPos.x + canvasSize.x, screenY),
-                    IM_COL32(m_config.gridColor[0] * 255,
-                            m_config.gridColor[1] * 255,
-                            m_config.gridColor[2] * 255,
-                            m_config.gridColor[3] * 255),
+                    IM_COL32(m_config.gridColor.x * 255,
+                            m_config.gridColor.y * 255,
+                            m_config.gridColor.z * 255,
+                            m_config.gridColor.w * 255),
                     m_config.lineThickness * 0.5f
                 );
                 
@@ -122,18 +114,13 @@ void GraphPanel::Render() {
                     snprintf(label, sizeof(label), "%.1f", y);
                     float labelX = canvasPos.x + 5.0f; // Position near left edge
                     
-                    // If X-axis is visible, position labels near it
-                    if (m_viewMinY <= 0 && m_viewMaxY >= 0) {
-                        float axisY = canvasPos.y + canvasSize.y - (-m_viewMinY) * scaleY;
-                        labelX = canvasPos.x + 5.0f;
-                    }
-                    
+                    // Keep the labelX constant, no need for axisY
                     drawList->AddText(
                         ImVec2(labelX, screenY - 10.0f),
-                        IM_COL32(m_config.axisColor[0] * 255,
-                                m_config.axisColor[1] * 255,
-                                m_config.axisColor[2] * 255,
-                                m_config.axisColor[3] * 255),
+                        IM_COL32(m_config.axisColor.x * 255,
+                                m_config.axisColor.y * 255,
+                                m_config.axisColor.z * 255,
+                                m_config.axisColor.w * 255),
                         label
                     );
                 }
@@ -147,10 +134,10 @@ void GraphPanel::Render() {
                 drawList->AddLine(
                     ImVec2(canvasPos.x, yZero),
                     ImVec2(canvasPos.x + canvasSize.x, yZero),
-                    IM_COL32(m_config.axisColor[0] * 255,
-                            m_config.axisColor[1] * 255,
-                            m_config.axisColor[2] * 255,
-                            m_config.axisColor[3] * 255),
+                    IM_COL32(m_config.axisColor.x * 255,
+                            m_config.axisColor.y * 255,
+                            m_config.axisColor.z * 255,
+                            m_config.axisColor.w * 255),
                     m_config.lineThickness * 1.5f  // Make axis lines thicker
                 );
             }
@@ -161,17 +148,63 @@ void GraphPanel::Render() {
                 drawList->AddLine(
                     ImVec2(xZero, canvasPos.y),
                     ImVec2(xZero, canvasPos.y + canvasSize.y),
-                    IM_COL32(m_config.axisColor[0] * 255,
-                            m_config.axisColor[1] * 255,
-                            m_config.axisColor[2] * 255,
-                            m_config.axisColor[3] * 255),
+                    IM_COL32(m_config.axisColor.x * 255,
+                            m_config.axisColor.y * 255,
+                            m_config.axisColor.z * 255,
+                            m_config.axisColor.w * 255),
                     m_config.lineThickness * 1.5f  // Make axis lines thicker
                 );
             }
         }
         
-        // Draw points if available
-        if (!m_points.empty()) {
+        // Draw multiple equation points if available
+        if (!m_equationPoints.empty()) {
+            // Define equation colors - cycle through these for different equations
+            const int numColors = 5;
+            ImU32 colors[numColors] = {
+                IM_COL32(0, 204, 51, 255),   // Green
+                IM_COL32(51, 153, 255, 255), // Blue
+                IM_COL32(255, 51, 51, 255),  // Red
+                IM_COL32(255, 153, 51, 255), // Orange
+                IM_COL32(153, 51, 255, 255)  // Purple
+            };
+            
+            // Log points count for debugging
+            if (debugCounter % 100 == 0) {
+                std::cout << "Multiple equations to plot: " << m_equationPoints.size() << std::endl;
+            }
+            
+            // Draw each equation's points with a different color
+            for (size_t eq = 0; eq < m_equationPoints.size(); ++eq) {
+                const auto& points = m_equationPoints[eq];
+                ImU32 color = colors[eq % numColors];
+                
+                // Draw connecting lines between points for this equation
+                for (size_t i = 1; i < points.size(); ++i) {
+                    // Properly transform from world to screen coordinates
+                    float x1 = canvasPos.x + (points[i-1].x - m_viewMinX) * scaleX;
+                    float y1 = canvasPos.y + canvasSize.y - (points[i-1].y - m_viewMinY) * scaleY;
+                    float x2 = canvasPos.x + (points[i].x - m_viewMinX) * scaleX;
+                    float y2 = canvasPos.y + canvasSize.y - (points[i].y - m_viewMinY) * scaleY;
+                    
+                    // Only draw if at least one point is within view
+                    if ((x1 >= canvasPos.x && x1 <= canvasPos.x + canvasSize.x) ||
+                        (x2 >= canvasPos.x && x2 <= canvasPos.x + canvasSize.x)) {
+                        if ((y1 >= canvasPos.y && y1 <= canvasPos.y + canvasSize.y) ||
+                            (y2 >= canvasPos.y && y2 <= canvasPos.y + canvasSize.y)) {
+                            drawList->AddLine(
+                                ImVec2(x1, y1),
+                                ImVec2(x2, y2),
+                                color,
+                                m_config.lineThickness
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        // Only use legacy single equation points if we don't have multi-equation points
+        else if (!m_points.empty()) {
             // Log points count for debugging
             if (debugCounter % 100 == 0) {
                 std::cout << "Points to plot: " << m_points.size() << std::endl;
@@ -190,15 +223,15 @@ void GraphPanel::Render() {
                     (x2 >= canvasPos.x && x2 <= canvasPos.x + canvasSize.x)) {
                     if ((y1 >= canvasPos.y && y1 <= canvasPos.y + canvasSize.y) ||
                         (y2 >= canvasPos.y && y2 <= canvasPos.y + canvasSize.y)) {
-                        drawList->AddLine(
-                            ImVec2(x1, y1),
-                            ImVec2(x2, y2),
-                            IM_COL32(m_config.graphColor[0] * 255,
-                                    m_config.graphColor[1] * 255,
-                                    m_config.graphColor[2] * 255,
-                                    m_config.graphColor[3] * 255),
-                            m_config.lineThickness
-                        );
+                            drawList->AddLine(
+                                ImVec2(x1, y1),
+                                ImVec2(x2, y2),
+                                IM_COL32(m_config.graphColor.x * 255,
+                                    m_config.graphColor.y * 255,
+                                    m_config.graphColor.z * 255,
+                                    m_config.graphColor.w * 255),
+                                m_config.lineThickness
+                            );
                     }
                 }
             }
@@ -212,10 +245,25 @@ void GraphPanel::Render() {
             drawList->AddText(msgPos, IM_COL32(255, 255, 255, 255), "No data to display");
         }
         
-        // Display equation if set
-        if (!m_equation.empty()) {
-            ImGui::SetCursorPos(ImVec2(10, 10));
-            ImGui::Text("Equation: %s", m_equation.c_str());
+        // Display all active equations instead of just the latest one
+        // Position it below the window title bar to avoid overlap
+        if (!m_equations.empty()) {
+            ImGui::SetCursorPos(ImVec2(10, 30)); // Position below the title bar
+            
+            // Create a vertical list of all equations with their respective colors
+            const int numColors = 5;
+            ImU32 colors[numColors] = {
+                IM_COL32(0, 204, 51, 255),   // Green
+                IM_COL32(51, 153, 255, 255), // Blue
+                IM_COL32(255, 51, 51, 255),  // Red
+                IM_COL32(255, 153, 51, 255), // Orange
+                IM_COL32(153, 51, 255, 255)  // Purple
+            };
+            
+            for (size_t i = 0; i < m_equations.size(); ++i) {
+                ImVec4 color = ImGui::ColorConvertU32ToFloat4(colors[i % numColors]);
+                ImGui::TextColored(color, "%s", m_equations[i].c_str());
+            }
         }
         
         // Display viewport coordinates
@@ -233,12 +281,30 @@ void GraphPanel::SetPoints(const std::vector<GraphPoint>& points) {
     m_points = points;
 }
 
+void GraphPanel::SetMultipleEquationPoints(const std::vector<std::vector<GraphPoint>>& equationPoints) {
+    m_equationPoints = equationPoints;
+    
+    // No longer flattening points to avoid creating the false third line
+    // This prevents the issue where points from different equations are connected
+}
+
 void GraphPanel::SetViewCallback(std::function<void(float, float, float, float)> callback) {
     m_viewCallback = std::move(callback);
 }
 
 void GraphPanel::SetEquation(const std::string& equation) {
-    m_equation = equation;
+    // Add this equation to our list if it's not already there
+    bool found = false;
+    for (const auto& eq : m_equations) {
+        if (eq == equation) {
+            found = true;
+            break;
+        }
+    }
+    
+    if (!found) {
+        m_equations.push_back(equation);
+    }
 }
 
 void GraphPanel::SetConfig(const GraphConfig& config) {
@@ -259,7 +325,7 @@ void GraphPanel::HandleInput() {
             float dx = ImGui::GetIO().MouseDelta.x;
             float dy = ImGui::GetIO().MouseDelta.y;
             
-            // Apply pan sensitivity
+            // Apply pan sensitivity (fixed value)
             dx *= m_config.panSensitivity;
             dy *= m_config.panSensitivity;
             
@@ -267,9 +333,9 @@ void GraphPanel::HandleInput() {
             float worldDeltaX = dx * (m_viewMaxX - m_viewMinX) / canvasSize.x;
             float worldDeltaY = dy * (m_viewMaxY - m_viewMinY) / canvasSize.y;
             
-            // Apply X/Y sensitivity adjustments
-            worldDeltaX *= m_config.xSensitivity;
-            worldDeltaY *= m_config.yAxisScaling;
+            // Apply X/Y sensitivity adjustments (using fixed values)
+            worldDeltaX *= m_config.xAxisScaling;  // Fixed to 1.0
+            worldDeltaY *= m_config.yAxisScaling;  // Fixed to 0.01
             
             // Move in the opposite direction of mouse movement
             m_viewMinX -= worldDeltaX;
@@ -283,7 +349,7 @@ void GraphPanel::HandleInput() {
         // Zoom with mouse wheel
         float wheel = ImGui::GetIO().MouseWheel;
         if (wheel != 0.0f) {
-            // Apply zoom sensitivity
+            // Apply zoom sensitivity (fixed value)
             wheel *= m_config.zoomSensitivity;
             
             // Get mouse position in screen space
@@ -305,11 +371,11 @@ void GraphPanel::HandleInput() {
             // Calculate zoom factor - positive wheel scrolls in, negative scrolls out
             float zoomFactor = wheel > 0 ? (1.0f - 0.1f * m_config.zoomSensitivity) : (1.0f + 0.1f * m_config.zoomSensitivity);
             
-            // Calculate new width and height independently using their respective sensitivities
+            // Calculate new dimensions using the square zoom
             float xRange = (m_viewMaxX - m_viewMinX) * zoomFactor;
             float yRange = (m_viewMaxY - m_viewMinY) * zoomFactor;
             
-            // Calculate new boundaries maintaining aspect ratio but applying appropriate sensitivity
+            // Calculate new boundaries maintaining aspect ratio
             m_viewMinX = worldX - relX * xRange;
             m_viewMaxX = m_viewMinX + xRange;
             m_viewMinY = worldY - (1.0f - relY) * yRange;
@@ -337,20 +403,25 @@ void GraphPanel::UpdateView() {
 }
 
 void GraphPanel::ResetView() {
-    // Use the configurable default view dimensions
-    float halfWidth = m_config.defaultViewWidth / 2.0f;
-    m_viewMinX = -halfWidth;
-    m_viewMaxX = halfWidth;
+    // Use the configurable default view dimensions with a single scaling value
+    float halfSize = m_config.defaultViewScaling / 2.0f;
     
-    // Calculate Y range based on scaling and default height
-    float scaledHeight = m_config.defaultViewHeight;
-    
-    // Center the Y view
-    m_viewMinY = -scaledHeight/2;
-    m_viewMaxY = scaledHeight/2;
+    // Make sure view is square
+    m_viewMinX = -halfSize;
+    m_viewMaxX = halfSize;
+    m_viewMinY = -halfSize;
+    m_viewMaxY = halfSize;
     
     // Update the view
     UpdateView();
+}
+
+void GraphPanel::RemoveEquation(const std::string& equation) {
+    // Find and remove the equation from our list
+    auto it = std::find(m_equations.begin(), m_equations.end(), equation);
+    if (it != m_equations.end()) {
+        m_equations.erase(it);
+    }
 }
 
 } // namespace plot_genius 

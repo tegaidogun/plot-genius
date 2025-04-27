@@ -58,12 +58,12 @@ extern "C" {
 }
 
 Renderer::Renderer() 
-    : m_projection(1.0f)
-    , m_view(1.0f)
-    , m_graphShader{0, 0, 0}
+    : m_graphShader{0, 0, 0}
     , m_gridShader{0, 0, 0}
     , m_graphBuffer{0, 0}
     , m_gridBuffer{0, 0}
+    , m_projection(1.0f)
+    , m_view(1.0f)
     , m_gridVertexCount(0) {}
 
 Renderer::~Renderer() {

@@ -19,8 +19,10 @@ public:
 
     void Render();
     void SetPoints(const std::vector<GraphPoint>& points);
+    void SetMultipleEquationPoints(const std::vector<std::vector<GraphPoint>>& equationPoints);
     void SetViewCallback(std::function<void(float, float, float, float)> callback);
     void SetEquation(const std::string& equation);
+    void RemoveEquation(const std::string& equation);
     void SetConfig(const GraphConfig& config);
     void ResetView();
     
@@ -32,7 +34,8 @@ public:
 
 private:
     std::vector<GraphPoint> m_points;
-    std::string m_equation;
+    std::vector<std::vector<GraphPoint>> m_equationPoints;
+    std::vector<std::string> m_equations;  // Store all active equations
     GraphConfig m_config;
     float m_viewMinX{-10.0f};
     float m_viewMaxX{10.0f};
@@ -42,6 +45,7 @@ private:
 
     void DrawGraph();
     void HandleInput();
+    void HandlePanAndZoom();
     void UpdateView();
 };
 

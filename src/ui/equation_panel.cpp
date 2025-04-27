@@ -10,8 +10,6 @@ EquationPanel::EquationPanel() : m_hasError(false) {
 }
 
 void EquationPanel::Render() {
-    ImGuiWindowFlags flags = ImGuiWindowFlags_None;
-    
     // Main content
     DrawEquationInput();
     ImGui::Separator();

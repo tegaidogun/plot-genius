@@ -38,10 +38,18 @@ bool Window::Initialize() {
         return false;
     }
 
+    // Set OpenGL context version
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+    
+    // Essential window hints for proper window behavior with decorations
+    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+    
+    // Create window with default decorations
     m_window = glfwCreateWindow(1280, 720, "Plot Genius", nullptr, nullptr);
     if (!m_window) {
         core::Logger::GetInstance().Log(core::LogLevel::Error, "Failed to create GLFW window");
@@ -83,8 +91,9 @@ bool Window::Initialize() {
     defaultConfig.showGrid = true;
     defaultConfig.gridSpacing = 1.0f;
     defaultConfig.lineThickness = 2.0f;
-    defaultConfig.defaultViewWidth = 20.0f;  // -10 to 10 X range
-    defaultConfig.defaultViewHeight = 3.2f;  // -1.6 to 1.6 Y range with scaling
+    defaultConfig.defaultViewScaling = 20.0f;  // Single value for both dimensions
+    defaultConfig.xAxisScaling = 1.0f;       // Fixed value for X sensitivity
+    defaultConfig.yAxisScaling = 0.01f;      // Fixed value for Y sensitivity
     m_graphPanel->SetConfig(defaultConfig);
 
     // Set up panel callbacks
@@ -109,9 +118,7 @@ bool Window::Initialize() {
         m_graphPanel->SetConfig(config);
     });
 
-    // Set default equation
-    const std::string defaultEquation = "y=sin(x)";
-    m_equationPanel->SetCurrentEquation(defaultEquation);
+    // No default equation - let user add one
     
     core::Logger::GetInstance().Log(core::LogLevel::Info, "Window initialized successfully");
     return true;
@@ -252,14 +259,16 @@ void Window::UpdateGraphPoints(const std::string& equation) {
                 eqGraph.points.push_back({static_cast<float>(point.x), static_cast<float>(point.y)});
             }
             
-            // Update the graph panel with the points from all active equations
-            std::vector<GraphPoint> allPoints;
+            // Collect points from all active equations
+            std::vector<std::vector<GraphPoint>> allEquationPoints;
             for (const auto& pair : m_equations) {
                 if (pair.second.isActive) {
-                    allPoints.insert(allPoints.end(), pair.second.points.begin(), pair.second.points.end());
+                    allEquationPoints.push_back(pair.second.points);
                 }
             }
-            m_graphPanel->SetPoints(allPoints);
+            
+            // Update the graph panel with the points from all active equations
+            m_graphPanel->SetMultipleEquationPoints(allEquationPoints);
             m_graphPanel->SetEquation(equation); // Display the most recently added equation
             
             // Log success
@@ -278,7 +287,7 @@ void Window::UpdateGraphPoints(const std::string& equation) {
 
 void Window::UpdateActiveGraphPoints() {
     // Regenerate points for all active equations with the current view
-    std::vector<GraphPoint> allPoints;
+    std::vector<std::vector<GraphPoint>> allEquationPoints;
     
     for (auto& pair : m_equations) {
         auto& eqGraph = pair.second;
@@ -296,21 +305,30 @@ void Window::UpdateActiveGraphPoints() {
                 eqGraph.points.push_back({static_cast<float>(point.x), static_cast<float>(point.y)});
             }
             
-            // Add points to combined collection
-            allPoints.insert(allPoints.end(), eqGraph.points.begin(), eqGraph.points.end());
+            // Add points to collection
+            allEquationPoints.push_back(eqGraph.points);
         }
     }
     
     // Update the graph panel with all active points
-    m_graphPanel->SetPoints(allPoints);
+    m_graphPanel->SetMultipleEquationPoints(allEquationPoints);
 }
 
 void Window::RemoveEquation(int id) {
     // Find and remove the equation from our collection
     auto it = m_equations.find(id);
     if (it != m_equations.end()) {
+        // Get the equation text before removing it
+        std::string equationText = it->second.equation;
+        
+        // Remove from our collection
         m_equations.erase(it);
+        
+        // Update active graph points
         UpdateActiveGraphPoints();
+        
+        // Also remove from the graph panel's equation list
+        m_graphPanel->RemoveEquation(equationText);
     }
 }
 

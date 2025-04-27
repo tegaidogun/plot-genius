@@ -1,8 +1,22 @@
+/**
+ * UI Style Implementation
+ * 
+ * Implements theme settings for the application using ImGui styling system.
+ * Provides predefined dark and light themes as well as custom theme capabilities.
+ */
+
 #include "style.hpp"
 #include "imgui.h"
 
 namespace plot_genius {
 
+/**
+ * Sets the dark theme for the application
+ * 
+ * Configures ImGui style colors for a dark appearance with blue accent colors.
+ * Sets values for all ImGui color elements including backgrounds, text, controls,
+ * and interactive elements.
+ */
 void Style::SetDarkTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.Colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -56,6 +70,13 @@ void Style::SetDarkTheme() {
     style.GrabRounding = style.FrameRounding = 2.3f;
 }
 
+/**
+ * Sets the light theme for the application
+ * 
+ * Configures ImGui style colors for a light appearance with blue accent colors.
+ * Provides a high-contrast alternative to the dark theme while maintaining
+ * consistent accent colors.
+ */
 void Style::SetLightTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
@@ -109,6 +130,14 @@ void Style::SetLightTheme() {
     style.GrabRounding = style.FrameRounding = 2.3f;
 }
 
+/**
+ * Sets a custom theme with user-specified colors
+ * 
+ * @param bgColor Background color as RGBA float array
+ * @param textColor Text color as RGBA float array
+ * @param accentColor Accent color as RGBA float array that will be used for buttons
+ *                   with automatic hover/active state generation
+ */
 void Style::SetCustomTheme(float* bgColor, float* textColor, float* accentColor) {
     ImGuiStyle& style = ImGui::GetStyle();
     style.Colors[ImGuiCol_WindowBg] = ImVec4(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);

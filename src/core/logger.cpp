@@ -1,3 +1,10 @@
+/**
+ * Logger System Implementation
+ * 
+ * Implements a thread-safe singleton logger that supports console and file output
+ * with timestamp and severity level formatting.
+ */
+
 #include "logger.hpp"
 #include <ctime>
 #include <iomanip>
@@ -62,10 +69,17 @@ void Logger::Log(LogLevel level, const std::string& message) {
     }
 }
 
+/**
+ * Base case implementation for the template string formatter
+ */
 std::string Logger::FormatString(const std::string& format) {
     return format;
 }
 
+/**
+ * Recursive implementation of the string formatter
+ * Replaces {} placeholders with string representations of values
+ */
 template<typename T, typename... Args>
 std::string Logger::FormatString(const std::string& format, T value, Args... args) {
     std::string result;
@@ -80,7 +94,7 @@ std::string Logger::FormatString(const std::string& format, T value, Args... arg
     return result;
 }
 
-// Explicit template instantiations
+// Explicit template instantiations for common types
 template std::string Logger::FormatString<double, const char*>(const std::string&, double, const char*);
 template std::string Logger::FormatString<std::size_t, std::string>(const std::string&, std::size_t, std::string);
 template std::string Logger::FormatString<const char*>(const std::string&, const char*);

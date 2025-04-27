@@ -1,3 +1,18 @@
+/**
+ * Equation Parser Implementation
+ * 
+ * Implements a recursive descent parser for mathematical expressions.
+ * Parses expressions into an abstract syntax tree (AST) and provides 
+ * evaluation functionality for any x value.
+ * 
+ * Supports:
+ * - Basic arithmetic operations (+, -, *, /)
+ * - Mathematical functions (sin, cos, tan, sqrt, log, exp, abs, pow)
+ * - Constants (pi, e)
+ * - Parenthesized expressions
+ * - Variable substitution (x)
+ */
+
 #include "parser.hpp"
 #include <cmath>
 #include <sstream>
@@ -11,11 +26,27 @@ EquationParser::EquationParser() : m_root(nullptr) {
     InitializeConstants();
 }
 
+/**
+ * Initializes mathematical constants used in equations
+ * 
+ * Currently supports:
+ * - pi: The mathematical constant π (3.14159...)
+ * - e: The base of natural logarithms (2.71828...)
+ */
 void EquationParser::InitializeConstants() {
     m_constants["pi"] = M_PI;
     m_constants["e"] = M_E;
 }
 
+/**
+ * Validates that the equation is formatted correctly
+ * 
+ * Ensures the equation starts with 'y=' prefix as required
+ * by the application's convention.
+ * 
+ * @param equation The equation string to validate
+ * @return True if the format is valid, false otherwise with error message set
+ */
 bool EquationParser::ValidateEquationFormat(const ::std::string& equation) {
     // Check if equation starts with 'y='
     if (equation.length() < 2 || equation.substr(0, 2) != "y=") {
@@ -25,6 +56,15 @@ bool EquationParser::ValidateEquationFormat(const ::std::string& equation) {
     return true;
 }
 
+/**
+ * Parses a mathematical equation into an AST
+ * 
+ * Validates the equation format, removes the 'y=' prefix, and
+ * parses the right-hand side expression.
+ * 
+ * @param equation The equation string to parse (should start with 'y=')
+ * @return True if parsing succeeded, false otherwise with error message set
+ */
 bool EquationParser::Parse(const ::std::string& equation) {
     try {
         if (!ValidateEquationFormat(equation)) {
@@ -43,6 +83,13 @@ bool EquationParser::Parse(const ::std::string& equation) {
     }
 }
 
+/**
+ * Evaluates the parsed equation for a specific x value
+ * 
+ * @param x The value to substitute for the variable x
+ * @return The result of evaluating the equation
+ * @throws std::runtime_error if no equation has been successfully parsed
+ */
 double EquationParser::Evaluate(double x) const {
     if (!m_root) {
         throw ::std::runtime_error("No equation has been parsed yet");
@@ -50,6 +97,14 @@ double EquationParser::Evaluate(double x) const {
     return m_root->Evaluate(x);
 }
 
+/**
+ * Parses expressions with addition and subtraction operations
+ * 
+ * This handles the lowest precedence operators (+ and -).
+ * 
+ * @param expr The expression string to parse
+ * @return Root node of the parsed expression subtree
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseExpression(const ::std::string& expr) {
     auto node = ParseTerm(expr);
     if (!node) return nullptr;
@@ -76,6 +131,14 @@ double EquationParser::Evaluate(double x) const {
     return node;
 }
 
+/**
+ * Parses terms with multiplication and division operations
+ * 
+ * This handles the medium precedence operators (* and /).
+ * 
+ * @param expr The expression string to parse
+ * @return Root node of the parsed term subtree
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseTerm(const ::std::string& expr) {
     auto node = ParseFactor(expr);
     if (!node) return nullptr;
@@ -102,6 +165,16 @@ double EquationParser::Evaluate(double x) const {
     return node;
 }
 
+/**
+ * Parses factors (highest precedence elements)
+ * 
+ * Handles parenthesized expressions, numbers, variables, 
+ * constants, and function calls.
+ * 
+ * @param expr The expression string to parse
+ * @return Root node of the parsed factor subtree
+ * @throws std::runtime_error for syntax errors like unmatched parentheses
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseFactor(const ::std::string& expr) {
     if (expr.empty()) return nullptr;
 
@@ -138,6 +211,12 @@ double EquationParser::Evaluate(double x) const {
     return nullptr;
 }
 
+/**
+ * Parses a numeric literal
+ * 
+ * @param expr The expression string starting with a numeric literal
+ * @return NumberNode containing the parsed value
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseNumber(const ::std::string& expr) {
     ::std::istringstream iss(expr);
     double value;
@@ -149,6 +228,12 @@ double EquationParser::Evaluate(double x) const {
     return nullptr;
 }
 
+/**
+ * Parses a named constant (e.g., pi, e)
+ * 
+ * @param expr The expression string potentially starting with a constant name
+ * @return ConstantNode if a valid constant is found, nullptr otherwise
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseConstant(const ::std::string& expr) {
     for (const auto& [name, value] : m_constants) {
         if (expr.substr(0, name.length()) == name) {
@@ -160,6 +245,16 @@ double EquationParser::Evaluate(double x) const {
     return nullptr;
 }
 
+/**
+ * Parses a function call (e.g., sin(x), pow(x,2))
+ * 
+ * Supports various mathematical functions and handles
+ * special cases like the two-argument pow function.
+ * 
+ * @param expr The expression string starting with a function name
+ * @return UnaryOpNode (or BinaryOpNode for pow) representing the function
+ * @throws std::runtime_error for invalid function syntax or unknown functions
+ */
 ::std::unique_ptr<EquationParser::Node> EquationParser::ParseFunction(const ::std::string& expr) {
     ::std::size_t parenStart = expr.find('(');
     if (parenStart == ::std::string::npos) {

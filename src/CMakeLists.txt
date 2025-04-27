@@ -37,9 +37,18 @@ target_include_directories(plot_genius_lib PUBLIC
 )
 
 # Link dependencies
-target_link_libraries(plot_genius_lib PUBLIC
-    OpenGL::GL
-    imgui
-    glad
-    glfw
-) 
+if(USE_SYSTEM_PACKAGES)
+    target_link_libraries(plot_genius_lib PUBLIC
+        OpenGL::GL
+        imgui
+        glad
+        glfw
+    )
+else()
+    target_link_libraries(plot_genius_lib PUBLIC
+        OpenGL::GL
+        imgui
+        glad
+        glfw
+    )
+endif() 

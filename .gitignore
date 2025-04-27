@@ -14,10 +14,6 @@ lib/
 .DS_Store
 Thumbs.db
 
-# Dependencies
-thirdparty/imgui/
-thirdparty/glfw/
-
 # Generated files
 *.o
 *.obj
@@ -32,3 +28,5 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 *.cmake 
+CMakePresets.json
+compile_commands.json

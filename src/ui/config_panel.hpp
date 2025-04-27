@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <functional>
+#include <imgui.h>
 
 namespace plot_genius {
 
@@ -12,23 +13,22 @@ struct GraphConfig {
     bool showGrid{true};
     
     // Default view dimensions (for reset)
-    float defaultViewWidth{20.0f};    // -10 to 10 on X axis
-    float defaultViewHeight{3.2f};    // -1.6 to 1.6 on Y axis with scaling
+    float defaultViewScaling{20.0f};  // Single scaling factor for both dimensions
     
-    // Axis scaling (sensitivity)
-    float xAxisScaling{1.0f};   // Range: 0.1f - 2.0f, Default: 1.0f
-    float yAxisScaling{0.16f};  // Range: 0.1f - 2.0f, Default: 0.16f
+    // Axis scaling (sensitivity) - fixed values, no longer adjustable in UI
+    float xAxisScaling{1.0f};   // Set to 1.0 as per requirement
+    float yAxisScaling{0.01f};  // Set to 0.01 as per requirement
     
-    // Sensitivity settings
+    // Sensitivity settings - fixed values, no longer adjustable in UI
     float panSensitivity{1.0f};
     float zoomSensitivity{1.0f};
-    float xSensitivity{1.0f};   // New setting for X-axis sensitivity
+    float xSensitivity{1.0f};
     
     // Colors
-    glm::vec4 backgroundColor{0.08f, 0.08f, 0.08f, 1.0f};
-    glm::vec4 gridColor{0.3f, 0.3f, 0.3f, 1.0f};
-    glm::vec4 axisColor{0.5f, 0.5f, 0.5f, 1.0f};
-    glm::vec4 graphColor{0.0f, 0.8f, 0.2f, 1.0f};
+    ImVec4 backgroundColor{0.08f, 0.08f, 0.08f, 1.0f};
+    ImVec4 gridColor{0.3f, 0.3f, 0.3f, 1.0f};
+    ImVec4 axisColor{0.5f, 0.5f, 0.5f, 1.0f};
+    ImVec4 graphColor{0.0f, 0.8f, 0.2f, 1.0f};
 };
 
 class ConfigPanel {
@@ -46,7 +46,6 @@ public:
 private:
     void DrawGridSettings();
     void DrawAppearanceSettings();
-    void DrawSensitivitySettings();
     void DrawViewportSettings();
     
     GraphConfig m_config;
