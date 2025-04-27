@@ -30,7 +30,7 @@ This script detects your package manager (apt, dnf, or pacman) and installs the 
 
 ```bash
 # Clone the repository with submodules
-git clone --recursive https://github.com/yourusername/plot-genius.git
+git clone --recursive https://github.com/tegaidogun/plot-genius.git
 cd plot-genius
 
 # Install system dependencies for linux (if not already installed)
